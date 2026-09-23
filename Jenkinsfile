@@ -7,11 +7,12 @@ pipeline {
     }
 
     environment {
-    PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-JENKINS\\stm32f407-cicd-template1'
-        }
+        PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-JENKINS\\stm32f407-cicd-template'
+        STLINK_SERIAL_NUMBER = '066EFF353055423143241415'
+        FIRMWARE_NAME = 'stm32f407-cicd-template'
+    }
 
     stages {
-
         stage('Source Information') {
             steps {
                 bat '''
@@ -32,16 +33,16 @@ pipeline {
 
                     echo.
                     echo ========================================
-                    echo Local STM32 project
+                    echo Dedicated STM32 build repository
                     echo ========================================
                     echo %PROJECT_DIR%
 
                     echo.
-                    echo Local project commit:
+                    echo Build repository commit before sync:
                     git -C "%PROJECT_DIR%" rev-parse HEAD
 
                     echo.
-                    echo Local project status:
+                    echo Build repository status before sync:
                     git -C "%PROJECT_DIR%" status --short
                 '''
             }
@@ -54,7 +55,7 @@ pipeline {
                         @echo off
 
                         echo ========================================
-                        echo Synchronizing dedicated build repository
+                        echo Synchronizing build repository
                         echo ========================================
 
                         git fetch origin main
@@ -72,18 +73,18 @@ pipeline {
                         )
 
                         echo.
-                        echo Build repository commit:
+                        echo Build repository commit after sync:
                         git rev-parse HEAD
 
                         echo.
-                        echo Build repository status:
+                        echo Build repository status after sync:
                         git status --short
                     '''
                 }
             }
         }
 
-        stage('Validate Build Revision') {
+        stage('Validate Source Consistency') {
             steps {
                 script {
                     def workspaceCommit = bat(
@@ -96,63 +97,37 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "Workspace commit: ${workspaceCommit}"
-                    echo "Build commit:     ${buildCommit}"
-
-                    if (workspaceCommit != buildCommit) {
-                        error(
-                            'The Jenkinsfile revision does not match the ' +
-                            'firmware build revision.'
-                        )
-                    }
-
-                    echo 'Build revision validated successfully'
-                }
-            }
-        }
-
-        stage('Validate Source Consistency') {
-            steps {
-                script {
-
-                    def workspaceCommit = bat(
-                        script: '@git -C "%WORKSPACE%" rev-parse HEAD',
-                        returnStdout: true
-                    ).trim()
-
-                    def localCommit = bat(
-                        script: '@git -C "%PROJECT_DIR%" rev-parse HEAD',
-                        returnStdout: true
-                    ).trim()
-
                     def workspaceStatus = bat(
                         script: '@git -C "%WORKSPACE%" status --porcelain',
                         returnStdout: true
                     ).trim()
 
-                    def localStatus = bat(
+                    def buildStatus = bat(
                         script: '@git -C "%PROJECT_DIR%" status --porcelain',
                         returnStdout: true
                     ).trim()
 
                     echo "Workspace commit: ${workspaceCommit}"
-                    echo "Local commit: ${localCommit}"
+                    echo "Build commit:     ${buildCommit}"
 
-                    if (workspaceCommit != localCommit) {
+                    if (workspaceCommit != buildCommit) {
                         error(
-                            "Source mismatch: Jenkins workspace and local STM32 project are on different commits."
+                            'Source mismatch: the Jenkins workspace and ' +
+                            'dedicated build repository are on different commits.'
                         )
                     }
 
                     if (workspaceStatus) {
                         error(
-                            "Jenkins workspace contains uncommitted changes:\n${workspaceStatus}"
+                            "Jenkins workspace contains uncommitted changes:\n" +
+                            workspaceStatus
                         )
                     }
 
-                    if (localStatus) {
+                    if (buildStatus) {
                         error(
-                            "Local STM32 project contains uncommitted changes:\n${localStatus}"
+                            "Build repository contains uncommitted changes:\n" +
+                            buildStatus
                         )
                     }
 
@@ -166,16 +141,39 @@ pipeline {
                 bat '''
                     @echo off
 
-                    echo === Python ===
+                    echo ========================================
+                    echo Python
+                    echo ========================================
+                    where python
                     python --version
 
                     echo.
-                    echo === GNU Make ===
+                    echo ========================================
+                    echo Git
+                    echo ========================================
+                    where git
+                    git --version
+
+                    echo.
+                    echo ========================================
+                    echo GNU Make
+                    echo ========================================
+                    where make
                     make --version
 
                     echo.
-                    echo === GNU Arm GCC ===
+                    echo ========================================
+                    echo GNU Arm GCC
+                    echo ========================================
+                    where arm-none-eabi-gcc
                     arm-none-eabi-gcc --version
+
+                    echo.
+                    echo ========================================
+                    echo STM32CubeProgrammer and ST-LINK
+                    echo ========================================
+                    where STM32_Programmer_CLI.exe
+                    STM32_Programmer_CLI.exe -l stlink
                 '''
             }
         }
@@ -186,7 +184,9 @@ pipeline {
                     bat '''
                         @echo off
 
-                        echo Starting STM32 firmware build...
+                        echo ========================================
+                        echo Building STM32 firmware
+                        echo ========================================
 
                         python Automation\\build.py ^
                             --config Debug ^
@@ -202,14 +202,40 @@ pipeline {
                     bat '''
                         @echo off
 
-                        if not exist Debug\\stm32f407-cicd-template.elf exit /b 1
-                        if not exist Debug\\stm32f407-cicd-template.hex exit /b 1
-                        if not exist Debug\\stm32f407-cicd-template.bin exit /b 1
-                        if not exist Debug\\stm32f407-cicd-template.map exit /b 1
-                        if not exist Debug\\stm32f407-cicd-template.list exit /b 1
+                        echo ========================================
+                        echo Validating firmware artifacts
+                        echo ========================================
 
-                        arm-none-eabi-size Debug\\stm32f407-cicd-template.elf
+                        if not exist Debug\\%FIRMWARE_NAME%.elf (
+                            echo ERROR: ELF artifact was not generated
+                            exit /b 1
+                        )
 
+                        if not exist Debug\\%FIRMWARE_NAME%.hex (
+                            echo ERROR: HEX artifact was not generated
+                            exit /b 1
+                        )
+
+                        if not exist Debug\\%FIRMWARE_NAME%.bin (
+                            echo ERROR: BIN artifact was not generated
+                            exit /b 1
+                        )
+
+                        if not exist Debug\\%FIRMWARE_NAME%.map (
+                            echo ERROR: MAP artifact was not generated
+                            exit /b 1
+                        )
+
+                        if not exist Debug\\%FIRMWARE_NAME%.list (
+                            echo ERROR: LIST artifact was not generated
+                            exit /b 1
+                        )
+
+                        echo.
+                        echo Firmware memory usage:
+                        arm-none-eabi-size Debug\\%FIRMWARE_NAME%.elf
+
+                        echo.
                         echo All firmware artifacts were validated
                     '''
                 }
@@ -221,17 +247,26 @@ pipeline {
                 bat '''
                     @echo off
 
+                    echo ========================================
+                    echo Copying artifacts into Jenkins workspace
+                    echo ========================================
+
                     if exist artifacts (
                         rmdir /s /q artifacts
                     )
 
                     mkdir artifacts
 
-                    copy "%PROJECT_DIR%\\Debug\\stm32f407-cicd-template.elf" artifacts\\
-                    copy "%PROJECT_DIR%\\Debug\\stm32f407-cicd-template.hex" artifacts\\
-                    copy "%PROJECT_DIR%\\Debug\\stm32f407-cicd-template.bin" artifacts\\
-                    copy "%PROJECT_DIR%\\Debug\\stm32f407-cicd-template.map" artifacts\\
-                    copy "%PROJECT_DIR%\\Debug\\stm32f407-cicd-template.list" artifacts\\
+                    copy "%PROJECT_DIR%\\Debug\\%FIRMWARE_NAME%.elf" artifacts\\
+                    copy "%PROJECT_DIR%\\Debug\\%FIRMWARE_NAME%.hex" artifacts\\
+                    copy "%PROJECT_DIR%\\Debug\\%FIRMWARE_NAME%.bin" artifacts\\
+                    copy "%PROJECT_DIR%\\Debug\\%FIRMWARE_NAME%.map" artifacts\\
+                    copy "%PROJECT_DIR%\\Debug\\%FIRMWARE_NAME%.list" artifacts\\
+
+                    if errorlevel 1 (
+                        echo ERROR: Failed to copy one or more artifacts
+                        exit /b 1
+                    )
                 '''
 
                 archiveArtifacts(
@@ -247,11 +282,13 @@ pipeline {
                     bat '''
                         @echo off
 
-                        echo Starting STM32 firmware flashing...
+                        echo ========================================
+                        echo Programming STM32F407
+                        echo ========================================
 
                         python Automation\\flash.py ^
                             --config Debug ^
-                            --erase-all
+                            --under-reset ^
                     '''
                 }
             }
@@ -260,11 +297,11 @@ pipeline {
 
     post {
         success {
-            echo 'STM32 firmware build completed successfully'
+            echo 'STM32 firmware build, publication and flash completed successfully'
         }
 
         failure {
-            echo 'STM32 firmware build failed'
+            echo 'STM32 pipeline failed. Check the failing stage and console output.'
         }
 
         always {
