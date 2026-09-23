@@ -1,0 +1,140 @@
+cmake_minimum_required(VERSION 3.24)
+
+project(
+    stm32f407-cicd-template
+    VERSION 0.1.0
+    LANGUAGES C ASM
+)
+
+set(TARGET_NAME ${PROJECT_NAME})
+
+set(
+    MCU_FLAGS
+    -mcpu=cortex-m4
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -mthumb
+)
+
+set(
+    LINKER_SCRIPT
+    ${CMAKE_CURRENT_SOURCE_DIR}/STM32F407VGTX_FLASH.ld
+)
+
+add_executable(
+    ${TARGET_NAME}
+
+    Core/Src/main.c
+    Core/Src/stm32f4xx_hal_msp.c
+    Core/Src/stm32f4xx_it.c
+    Core/Src/syscalls.c
+    Core/Src/sysmem.c
+    Core/Src/system_stm32f4xx.c
+
+    Core/Startup/startup_stm32f407vgtx.s
+
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
+    Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
+)
+
+target_include_directories(
+    ${TARGET_NAME}
+    PRIVATE
+        Core/Inc
+        Drivers/STM32F4xx_HAL_Driver/Inc
+        Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
+        Drivers/CMSIS/Device/ST/STM32F4xx/Include
+        Drivers/CMSIS/Include
+)
+
+target_compile_definitions(
+    ${TARGET_NAME}
+    PRIVATE
+        USE_HAL_DRIVER
+        STM32F407xx
+        $<$<CONFIG:Debug>:DEBUG>
+)
+
+target_compile_options(
+    ${TARGET_NAME}
+    PRIVATE
+        ${MCU_FLAGS}
+
+        -ffunction-sections
+        -fdata-sections
+        -Wall
+
+        $<$<COMPILE_LANGUAGE:C>:-std=gnu11>
+
+        $<$<CONFIG:Debug>:-O0>
+        $<$<CONFIG:Debug>:-g3>
+
+        $<$<CONFIG:Release>:-O2>
+)
+
+target_link_options(
+    ${TARGET_NAME}
+    PRIVATE
+        ${MCU_FLAGS}
+
+        -T${LINKER_SCRIPT}
+
+        --specs=nosys.specs
+        --specs=nano.specs
+
+        -static
+
+        -Wl,--gc-sections
+        -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.map
+
+        -Wl,--start-group
+        -lc
+        -lm
+        -Wl,--end-group
+)
+
+set_target_properties(
+    ${TARGET_NAME}
+    PROPERTIES
+        SUFFIX ".elf"
+)
+
+add_custom_command(
+    TARGET ${TARGET_NAME}
+    POST_BUILD
+
+    COMMAND
+        ${CMAKE_OBJCOPY}
+        -O ihex
+        $<TARGET_FILE:${TARGET_NAME}>
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.hex
+
+    COMMAND
+        ${CMAKE_OBJCOPY}
+        -O binary
+        $<TARGET_FILE:${TARGET_NAME}>
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.bin
+
+    COMMAND
+        ${CMAKE_OBJDUMP}
+        -h
+        -S
+        $<TARGET_FILE:${TARGET_NAME}>
+        -o ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.list
+
+    COMMAND
+        ${CMAKE_SIZE}
+        $<TARGET_FILE:${TARGET_NAME}>
+
+    COMMENT
+        "Generating HEX, BIN, LIST and size report"
+)

@@ -88,3 +88,15 @@ python .\Automation\flash.py `
 python .\Automation\flash.py `
   --config Debug `
   --erase-all
+
+  ```
+  $javaExe = "C:\ST\STM32CubeIDE_2.0.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.jre.win64_3.4.100.202508201254\jre\bin\java.exe"
+
+$jenkinsWar = "$env:USERPROFILE\Tools\Jenkins\jenkins.war"
+
+$env:JENKINS_HOME = "$env:USERPROFILE\JenkinsHome"
+
+& $javaExe `
+    -jar $jenkinsWar `
+    --httpPort=8080
+```

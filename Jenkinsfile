@@ -7,8 +7,8 @@ pipeline {
     }
 
     environment {
-        PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-LOCAL\\stm32f407-cicd-template'
-    }
+    PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-JENKINS\\stm32f407-cicd-template1'
+        }
 
     stages {
 
@@ -44,6 +44,70 @@ pipeline {
                     echo Local project status:
                     git -C "%PROJECT_DIR%" status --short
                 '''
+            }
+        }
+
+        stage('Synchronize Build Repository') {
+            steps {
+                dir("${env.PROJECT_DIR}") {
+                    bat '''
+                        @echo off
+
+                        echo ========================================
+                        echo Synchronizing dedicated build repository
+                        echo ========================================
+
+                        git fetch origin main
+
+                        if errorlevel 1 (
+                            echo ERROR: Git fetch failed
+                            exit /b 1
+                        )
+
+                        git reset --hard origin/main
+
+                        if errorlevel 1 (
+                            echo ERROR: Git reset failed
+                            exit /b 1
+                        )
+
+                        echo.
+                        echo Build repository commit:
+                        git rev-parse HEAD
+
+                        echo.
+                        echo Build repository status:
+                        git status --short
+                    '''
+                }
+            }
+        }
+
+        stage('Validate Build Revision') {
+            steps {
+                script {
+                    def workspaceCommit = bat(
+                        script: '@git -C "%WORKSPACE%" rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    def buildCommit = bat(
+                        script: '@git -C "%PROJECT_DIR%" rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Workspace commit: ${workspaceCommit}"
+                    echo "Build commit:     ${buildCommit}"
+
+                    if (workspaceCommit != buildCommit) {
+                        error(
+                            'The Jenkinsfile revision does not match the ' +
+                            'firmware build revision.'
+                        )
+                    }
+
+                    echo 'Build revision validated successfully'
+                }
             }
         }
 
