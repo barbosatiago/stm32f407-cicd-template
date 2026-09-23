@@ -6,11 +6,16 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    triggers {
+        pollSCM('H/2 * * * *')
+        }
+
     environment {
         PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-JENKINS\\stm32f407-cicd-template'
         STLINK_SERIAL_NUMBER = '066EFF353055423143241415'
         FIRMWARE_NAME = 'stm32f407-cicd-template'
     }
+    
 
     stages {
         stage('Source Information') {
