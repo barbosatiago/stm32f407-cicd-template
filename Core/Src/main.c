@@ -171,7 +171,7 @@ while (1)
      * Update the LED sequence every 150 milliseconds.
      * No HAL_Delay() is necessary.
      */
-    if ((currentTimeMs - lastLedUpdateMs) >= 100U)
+    if ((currentTimeMs - lastLedUpdateMs) >= 1000U)
     {
         lastLedUpdateMs = currentTimeMs;
 
