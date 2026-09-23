@@ -88,3 +88,9 @@ python .\Automation\flash.py `
 python .\Automation\flash.py `
   --config Debug `
   --erase-all
+
+  Set-ExecutionPolicy `
+    -Scope Process `
+    -ExecutionPolicy Bypass
+
+& "$env:USERPROFILE\Tools\Jenkins\start-jenkins.ps1"
