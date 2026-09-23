@@ -10,26 +10,6 @@ pipeline {
         PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-LOCAL\\stm32f407-cicd-template'
     }
 
-    stages {
-        stage('Environment') {
-            steps {
-                bat '''
-                    @echo off
-
-                    echo === Python ===
-                    python --version
-
-                    echo.
-                    echo === GNU Make ===
-                    make --version
-
-                    echo.
-                    echo === GNU Arm GCC ===
-                    arm-none-eabi-gcc --version
-                '''
-            }
-        }
-
         stage('Source Information') {
             steps {
                 bat '''
@@ -64,6 +44,78 @@ pipeline {
                 '''
             }
         }
+
+        stage('Validate Source Consistency') {
+            steps {
+                script {
+                    def workspaceCommit = bat(
+                        script: '@git -C "%WORKSPACE%" rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    def localCommit = bat(
+                        script: '@git -C "%PROJECT_DIR%" rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    def workspaceStatus = bat(
+                        script: '@git -C "%WORKSPACE%" status --porcelain',
+                        returnStdout: true
+                    ).trim()
+
+                    def localStatus = bat(
+                        script: '@git -C "%PROJECT_DIR%" status --porcelain',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Workspace commit: ${workspaceCommit}"
+                    echo "Local commit:     ${localCommit}"
+
+                    if (workspaceCommit != localCommit) {
+                        error(
+                            "Source mismatch: Jenkins workspace and local " +
+                            "STM32 project are on different commits."
+                        )
+                    }
+
+                    if (workspaceStatus) {
+                        error(
+                            "Jenkins workspace contains uncommitted changes:\n" +
+                            workspaceStatus
+                        )
+                    }
+
+                    if (localStatus) {
+                        error(
+                            "Local STM32 project contains uncommitted changes:\n" +
+                            localStatus
+                        )
+                    }
+
+                    echo 'Source consistency validated successfully'
+                }
+            }
+        
+            stages {
+                stage('Environment') {
+                    steps {
+                        bat '''
+                            @echo off
+
+                            echo === Python ===
+                            python --version
+
+                            echo.
+                            echo === GNU Make ===
+                            make --version
+
+                            echo.
+                            echo === GNU Arm GCC ===
+                            arm-none-eabi-gcc --version
+                        '''
+                    }
+                }
+            }
 
         stage('Build') {
             steps {
