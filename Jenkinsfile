@@ -30,6 +30,17 @@ pipeline {
             }
         }
 
+        stage('Source Information') {
+            steps {
+                bat '''
+                    @echo off
+                    echo Workspace: %WORKSPACE%
+                    git rev-parse HEAD
+                    git status --short
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
                 dir("${env.PROJECT_DIR}") {
