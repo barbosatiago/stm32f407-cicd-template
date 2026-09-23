@@ -106,17 +106,171 @@ int main(void)
   /* USER CODE END 2 */
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+/* USER CODE BEGIN WHILE */
+while (1)
+{
+    /*
+     * These static variables are initialized only once.
+     * Their values are preserved between loop iterations.
+     */
+    static uint32_t lastLedUpdateMs = 0U;
+    static uint32_t lastButtonChangeMs = 0U;
+
+    static uint8_t currentLed = 0U;
+    static int8_t direction = 1;
+
+    static GPIO_PinState lastButtonReading = GPIO_PIN_RESET;
+    static GPIO_PinState stableButtonState = GPIO_PIN_RESET;
+
+    uint32_t currentTimeMs;
+    GPIO_PinState currentButtonReading;
+
+    currentTimeMs = HAL_GetTick();
+
+    /*
+     * Read the blue user button.
+     * B1 on PA0 becomes GPIO_PIN_SET when pressed.
+     */
+    currentButtonReading = HAL_GPIO_ReadPin(
+        B1_GPIO_Port,
+        B1_Pin
+    );
+
+    /*
+     * Detect a change in the raw button signal.
+     * Restart the debounce timer whenever a transition occurs.
+     */
+    if (currentButtonReading != lastButtonReading)
+    {
+        lastButtonReading = currentButtonReading;
+        lastButtonChangeMs = currentTimeMs;
+    }
+
+    /*
+     * Accept the new button state only after it remains
+     * stable for at least 50 milliseconds.
+     */
+    if ((currentTimeMs - lastButtonChangeMs) >= 50U)
+    {
+        if (currentButtonReading != stableButtonState)
+        {
+            stableButtonState = currentButtonReading;
+
+            /*
+             * Change direction only on the press event.
+             * Releasing the button does not change the direction.
+             */
+            if (stableButtonState == GPIO_PIN_SET)
+            {
+                direction = (int8_t)(-direction);
+            }
+        }
+    }
+
+    /*
+     * Update the LED sequence every 150 milliseconds.
+     * No HAL_Delay() is necessary.
+     */
+    if ((currentTimeMs - lastLedUpdateMs) >= 150U)
+    {
+        lastLedUpdateMs = currentTimeMs;
+
+        /*
+         * Turn off all user LEDs.
+         */
+        HAL_GPIO_WritePin(
+            GPIOD,
+            LD3_Pin | LD4_Pin | LD5_Pin | LD6_Pin,
+            GPIO_PIN_RESET
+        );
+
+        /*
+         * Turn on the currently selected LED.
+         *
+         * currentLed = 0 -> LD4, green
+         * currentLed = 1 -> LD3, orange
+         * currentLed = 2 -> LD5, red
+         * currentLed = 3 -> LD6, blue
+         */
+        switch (currentLed)
+        {
+            case 0U:
+            {
+                HAL_GPIO_WritePin(
+                    LD4_GPIO_Port,
+                    LD4_Pin,
+                    GPIO_PIN_SET
+                );
+                break;
+            }
+
+            case 1U:
+            {
+                HAL_GPIO_WritePin(
+                    LD3_GPIO_Port,
+                    LD3_Pin,
+                    GPIO_PIN_SET
+                );
+                break;
+            }
+
+            case 2U:
+            {
+                HAL_GPIO_WritePin(
+                    LD5_GPIO_Port,
+                    LD5_Pin,
+                    GPIO_PIN_SET
+                );
+                break;
+            }
+
+            case 3U:
+            {
+                HAL_GPIO_WritePin(
+                    LD6_GPIO_Port,
+                    LD6_Pin,
+                    GPIO_PIN_SET
+                );
+                break;
+            }
+
+            default:
+            {
+                currentLed = 0U;
+                break;
+            }
+        }
+
+        /*
+         * Calculate the next LED according to the current direction.
+         */
+        if (direction > 0)
+        {
+            currentLed++;
+
+            if (currentLed >= 4U)
+            {
+                currentLed = 0U;
+            }
+        }
+        else
+        {
+            if (currentLed == 0U)
+            {
+                currentLed = 3U;
+            }
+            else
+            {
+                currentLed--;
+            }
+        }
+    }
+
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
-    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-    HAL_Delay(3000);
 
     /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+}
+/* USER CODE END 3 */
 }
 
 /**
