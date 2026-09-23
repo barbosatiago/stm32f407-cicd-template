@@ -34,9 +34,33 @@ pipeline {
             steps {
                 bat '''
                     @echo off
-                    echo Workspace: %WORKSPACE%
-                    git rev-parse HEAD
-                    git status --short
+
+                    echo ========================================
+                    echo Jenkins workspace
+                    echo ========================================
+                    echo %WORKSPACE%
+
+                    echo.
+                    echo Workspace commit:
+                    git -C "%WORKSPACE%" rev-parse HEAD
+
+                    echo.
+                    echo Workspace status:
+                    git -C "%WORKSPACE%" status --short
+
+                    echo.
+                    echo ========================================
+                    echo Local STM32 project
+                    echo ========================================
+                    echo %PROJECT_DIR%
+
+                    echo.
+                    echo Local project commit:
+                    git -C "%PROJECT_DIR%" rev-parse HEAD
+
+                    echo.
+                    echo Local project status:
+                    git -C "%PROJECT_DIR%" status --short
                 '''
             }
         }
