@@ -180,7 +180,7 @@ while (1)
          */
         HAL_GPIO_WritePin(
             GPIOD,
-            LD3_Pin | LD4_Pin | LD5_Pin | LD6_Pin,
+            LD3_Pin | LD4_Pin | LD5_Pin | LD6_Pi,
             GPIO_PIN_RESET
         );
 
