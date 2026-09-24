@@ -294,6 +294,7 @@ pipeline {
                         python Automation\\flash.py ^
                             --config Debug ^
                             --under-reset ^
+                            --serial-number %STLINK_SERIAL_NUMBER%
                     '''
                 }
             }
