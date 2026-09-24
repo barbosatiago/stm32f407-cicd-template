@@ -7,8 +7,61 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H/2 * * * *')
-        }
+        pollSCM('* * * * *')
+    }
+
+    parameters {
+        choice(
+            name: 'BUILD_CONFIG',
+            choices: [
+                'Debug',
+                'Release'
+            ],
+            description: 'Firmware build configuration'
+        )
+
+        booleanParam(
+            name: 'CLEAN_BUILD',
+            defaultValue: true,
+            description: 'Remove previous build objects before compilation'
+        )
+
+        string(
+            name: 'BUILD_JOBS',
+            defaultValue: '4',
+            description: 'Number of parallel Make jobs'
+        )
+
+        booleanParam(
+            name: 'RUN_FLASH',
+            defaultValue: true,
+            description: 'Program the firmware after a successful build'
+        )
+
+        booleanParam(
+            name: 'UNDER_RESET',
+            defaultValue: true,
+            description: 'Connect to the STM32 under hardware reset'
+        )
+
+        booleanParam(
+            name: 'ERASE_ALL',
+            defaultValue: false,
+            description: 'Perform a full Flash erase before programming'
+        )
+
+        string(
+            name: 'STLINK_SERIAL_NUMBER',
+            defaultValue: '066EFF353055423143241415',
+            description: 'ST-LINK serial number'
+        )
+
+        string(
+            name: 'FIRMWARE_IMAGE',
+            defaultValue: '',
+            description: 'Optional custom HEX, ELF or BIN path'
+        )
+    }
 
     environment {
         PROJECT_DIR = 'C:\\Users\\Tiago.Silva\\documents\\projects\\STM-JENKINS\\stm32f407-cicd-template'
