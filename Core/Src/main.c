@@ -150,7 +150,7 @@ while (1)
      * Accept the new button state only after it remains
      * stable for at least 50 milliseconds.
      */
-    if ((currentTimeMs - lastButtonChangeMs) >= 50U)
+    if ((currentTimeMs - lastButtonChangeMs) >= 100U)
     {
         if (currentButtonReading != stableButtonState)
         {
@@ -171,7 +171,7 @@ while (1)
      * Update the LED sequence every 150 milliseconds.
      * No HAL_Delay() is necessary.
      */
-    if ((currentTimeMs - lastLedUpdateMs) >= 300U)
+    if ((currentTimeMs - lastLedUpdateMs) >= 50U)
     {
         lastLedUpdateMs = currentTimeMs;
 
