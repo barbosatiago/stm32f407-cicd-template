@@ -191,7 +191,7 @@ def main() -> int:
     run_command(command)
 
     print("\n[PASS] Firmware programmed and verified successfully")
-    return 0
+    return 1
 
 
 if __name__ == "__main__":

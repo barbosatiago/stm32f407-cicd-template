@@ -89,7 +89,7 @@ python .\Automation\flash.py `
   --config Debug `
   --erase-all
 
-  Set-ExecutionPolicy `
+Set-ExecutionPolicy `
     -Scope Process `
     -ExecutionPolicy Bypass
 
