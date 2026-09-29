@@ -65,7 +65,7 @@ main-build: stm32f407-cicd-template.elf secondary-outputs
 
 # Tool invocations
 stm32f407-cicd-template.elf stm32f407-cicd-template.map: $(OBJS) $(USER_OBJS) C:\Users\Tiago.Silva\Documents\Projects\STM-LOCAL\stm32f407-cicd-template\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "stm32f407-cicd-template.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Tiago.Silva\Documents\Projects\STM-LOCAL\stm32f407-cicd-template\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f407-cicd-template.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "stm32f407-cicd-template.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"../STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f407-cicd-template.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
